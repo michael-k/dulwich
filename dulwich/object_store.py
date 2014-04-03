@@ -27,6 +27,7 @@ import itertools
 import os
 import stat
 import tempfile
+import sys
 
 from dulwich.diff_tree import (
     tree_changes,
@@ -71,7 +72,7 @@ class BaseObjectStore(object):
 
     def determine_wants_all(self, refs):
         return [sha for (ref, sha) in refs.iteritems()
-                if not sha in self and not ref.endswith("^{}") and
+                if not sha in self and not ref.endswith(b"^{}") and
                    not sha == ZERO_SHA]
 
     def iter_shas(self, shas):
@@ -435,7 +436,7 @@ class DiskObjectStore(PackBasedObjectStore):
         ret = []
         try:
             for l in f.readlines():
-                l = l.rstrip("\n")
+                l = l.decode(sys.getdefaultencoding()).rstrip("\n")
                 if l[0] == "#":
                     continue
                 if os.path.isabs(l):
@@ -467,7 +468,7 @@ class DiskObjectStore(PackBasedObjectStore):
                     f.write(orig_f.read())
                 finally:
                     orig_f.close()
-            f.write("%s\n" % path)
+            f.write(path.encode(sys.getfilesystemencoding()) + b"\n")
         finally:
             f.close()
 
@@ -518,7 +519,7 @@ class DiskObjectStore(PackBasedObjectStore):
             if len(base) != 2:
                 continue
             for rest in os.listdir(os.path.join(self.path, base)):
-                yield base+rest
+                yield (base+rest).encode('ascii')
 
     def _get_loose_object(self, sha):
         path = self._get_shafile_path(sha)
@@ -572,7 +573,7 @@ class DiskObjectStore(PackBasedObjectStore):
         # Move the pack in.
         entries.sort()
         pack_base_name = os.path.join(
-          self.pack_dir, 'pack-' + iter_sha1(e[0] for e in entries))
+            self.pack_dir, 'pack-' + iter_sha1(e[0] for e in entries).decode('ascii'))
         os.rename(path, pack_base_name + '.pack')
 
         # Write the index.
@@ -667,15 +668,15 @@ class DiskObjectStore(PackBasedObjectStore):
 
         :param obj: Object to add
         """
-        dir = os.path.join(self.path, obj.id[:2])
+        dir = os.path.join(self.path, obj.id[:2].decode('ascii'))
         try:
             os.mkdir(dir)
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-        path = os.path.join(dir, obj.id[2:])
+        path = os.path.join(dir, obj.id[2:].decode('ascii'))
         if os.path.exists(path):
-            return # Already there, no need to write again
+            return  # Already there, no need to write again
         f = GitFile(path, 'wb')
         try:
             f.write(obj.as_legacy_object())

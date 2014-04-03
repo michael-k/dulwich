@@ -252,7 +252,7 @@ def iter_sha1(iter):
     sha = sha1()
     for name in iter:
         sha.update(name)
-    return sha.hexdigest()
+    return sha.hexdigest().encode('ascii')
 
 
 def load_pack_index(path):
@@ -296,8 +296,8 @@ def load_pack_index_file(path, f):
     :return: A PackIndex loaded from the given file
     """
     contents, size = _load_file_contents(f)
-    if contents[:4] == '\377tOc':
-        version = struct.unpack('>L', contents[4:8])[0]
+    if contents[:4] == b'\377tOc':
+        version = struct.unpack(b'>L', contents[4:8])[0]
         if version == 2:
             return PackIndex2(path, file=f, contents=contents,
                 size=size)
@@ -320,10 +320,9 @@ def bisect_find_sha(start, end, sha, unpack_name):
     while start <= end:
         i = (start + end) // 2
         file_sha = unpack_name(i)
-        x = cmp(file_sha, sha)
-        if x < 0:
+        if file_sha < sha:
             start = i + 1
-        elif x > 0:
+        elif file_sha > sha:
             end = i - 1
         else:
             return i
@@ -539,14 +538,14 @@ class FilePackIndex(PackIndex):
 
         :return: 20-byte binary digest
         """
-        return str(self._contents[-40:-20])
+        return bytes(self._contents[-40:-20])
 
     def get_stored_checksum(self):
         """Return the SHA1 checksum stored for this index.
 
         :return: 20-byte binary digest
         """
-        return str(self._contents[-20:])
+        return bytes(self._contents[-20:])
 
     def _object_index(self, sha):
         """See object_index.
@@ -597,9 +596,9 @@ class PackIndex2(FilePackIndex):
 
     def __init__(self, filename, file=None, contents=None, size=None):
         super(PackIndex2, self).__init__(filename, file, contents, size)
-        if self._contents[:4] != '\377tOc':
+        if self._contents[:4] != b'\377tOc':
             raise AssertionError('Not a v2 pack index file')
-        (self.version, ) = unpack_from('>L', self._contents, 4)
+        (self.version, ) = unpack_from(b'>L', self._contents, 4)
         if self.version != 2:
             raise AssertionError('Version was %d' % self.version)
         self._fan_out_table = self._read_fan_out_table(8)
@@ -641,17 +640,20 @@ def read_pack_header(read):
     header = read(12)
     if not header:
         return None, None
-    if header[:4] != 'PACK':
+    if header[:4] != b'PACK':
         raise AssertionError('Invalid pack header %r' % header)
-    (version,) = unpack_from('>L', header, 4)
+    (version,) = unpack_from(b'>L', header, 4)
     if version not in (2, 3):
         raise AssertionError('Version was %d' % version)
-    (num_objects,) = unpack_from('>L', header, 8)
+    (num_objects,) = unpack_from(b'>L', header, 8)
     return (version, num_objects)
 
 
 def chunks_length(chunks):
-    return sum(imap(len, chunks))
+    if isinstance(chunks, bytes):
+        return len(chunks)
+    else:
+        return sum(imap(len, chunks))
 
 
 def unpack_object(read_all, read_some=None, compute_crc32=False,
@@ -854,7 +856,7 @@ class PackStreamReader(object):
             # read buffer and (20 - N) come from the wire.
             self.read(20)
 
-        pack_sha = ''.join(self._trailer)
+        pack_sha = b''.join(self._trailer)
         if pack_sha != self.sha.digest():
             raise ChecksumMismatch(sha_to_hex(pack_sha), self.sha.hexdigest())
 
@@ -905,8 +907,11 @@ def obj_sha(type, chunks):
     """Compute the SHA for a numeric type and object chunks."""
     sha = sha1()
     sha.update(object_header(type, chunks_length(chunks)))
-    for chunk in chunks:
-        sha.update(chunk)
+    if isinstance(chunks, bytes):
+        sha.update(chunks)
+    else:
+        for chunk in chunks:
+            sha.update(chunk)
     return sha.digest()
 
 
@@ -1338,7 +1343,7 @@ class SHA1Reader(object):
 
     def __init__(self, f):
         self.f = f
-        self.sha1 = sha1('')
+        self.sha1 = sha1(b'')
 
     def read(self, num=None):
         data = self.f.read(num)
@@ -1363,7 +1368,7 @@ class SHA1Writer(object):
     def __init__(self, f):
         self.f = f
         self.length = 0
-        self.sha1 = sha1('')
+        self.sha1 = sha1(b'')
 
     def write(self, data):
         self.sha1.update(data)
@@ -1397,7 +1402,7 @@ def pack_object_header(type_num, delta_base, size):
     :param size: Uncompressed object size.
     :return: A header for a packed object.
     """
-    header = ''
+    header = b''
     c = (type_num << 4) | (size & 15)
     size >>= 4
     while size:
@@ -1470,9 +1475,9 @@ def write_pack(filename, objects, num_objects=None):
 
 def write_pack_header(f, num_objects):
     """Write a pack header for the given number of objects."""
-    f.write('PACK')                          # Pack header
-    f.write(struct.pack('>L', 2))            # Pack version
-    f.write(struct.pack('>L', num_objects))  # Number of objects in pack
+    f.write(b'PACK')                          # Pack header
+    f.write(struct.pack(b'>L', 2))            # Pack version
+    f.write(struct.pack(b'>L', num_objects))  # Number of objects in pack
 
 
 def deltify_pack_objects(objects, window=10):
@@ -1591,10 +1596,10 @@ def create_delta(base_buf, target_buf):
     """
     assert isinstance(base_buf, bytes)
     assert isinstance(target_buf, bytes)
-    out_buf = ''
+    out_buf = b''
     # write delta header
     def encode_size(size):
-        ret = ''
+        ret = b''
         c = size & 0x7f
         size >>= 7
         while size:
@@ -1614,7 +1619,7 @@ def create_delta(base_buf, target_buf):
         if opcode == 'equal':
             # If they are equal, unpacker will use data from base_buf
             # Write out an opcode that says what range to use
-            scratch = ''
+            scratch = b''
             op = 0x80
             o = i1
             for i in range(4):
@@ -1650,9 +1655,9 @@ def apply_delta(src_buf, delta):
     :param delta: Delta instructions
     """
     if not isinstance(src_buf, bytes):
-        src_buf = ''.join(src_buf)
+        src_buf = b''.join(src_buf)
     if not isinstance(delta, bytes):
-        delta = ''.join(delta)
+        delta = b''.join(delta)
     out = []
     index = 0
     delta_length = len(delta)
@@ -1701,7 +1706,6 @@ def apply_delta(src_buf, delta):
 
     if index != delta_length:
         raise ApplyDeltaError('delta not empty: %r' % delta[index:])
-
     if dest_size != chunks_length(out):
         raise ApplyDeltaError('dest size incorrect')
 
@@ -1718,7 +1722,7 @@ def write_pack_index_v2(f, entries, pack_checksum):
     :return: The SHA of the index file written
     """
     f = SHA1Writer(f)
-    f.write('\377tOc') # Magic!
+    f.write(b'\377tOc')  # Magic!
     f.write(struct.pack('>L', 2))
     fan_out_table = defaultdict(lambda: 0)
     for (name, offset, entry_checksum) in entries:
@@ -1726,20 +1730,20 @@ def write_pack_index_v2(f, entries, pack_checksum):
     # Fan-out table
     largetable = []
     for i in range(0x100):
-        f.write(struct.pack('>L', fan_out_table[i]))
+        f.write(struct.pack(b'>L', fan_out_table[i]))
         fan_out_table[i+1] += fan_out_table[i]
     for (name, offset, entry_checksum) in entries:
         f.write(name)
     for (name, offset, entry_checksum) in entries:
-        f.write(struct.pack('>L', entry_checksum))
+        f.write(struct.pack(b'>L', entry_checksum))
     for (name, offset, entry_checksum) in entries:
         if offset < 2**31:
-            f.write(struct.pack('>L', offset))
+            f.write(struct.pack(b'>L', offset))
         else:
-            f.write(struct.pack('>L', 2**31 + len(largetable)))
+            f.write(struct.pack(b'>L', 2**31 + len(largetable)))
             largetable.append(offset)
     for offset in largetable:
-        f.write(struct.pack('>Q', offset))
+        f.write(struct.pack(b'>Q', offset))
     assert len(pack_checksum) == 20
     f.write(pack_checksum)
     return f.write_sha()
@@ -1853,7 +1857,7 @@ class Pack(object):
         offset = self.index.object_index(sha1)
         obj_type, obj = self.data.get_object_at(offset)
         type_num, chunks = self.data.resolve_object(offset, obj_type, obj)
-        return type_num, ''.join(chunks)
+        return type_num, b''.join(chunks)
 
     def __getitem__(self, sha1):
         """Retrieve the specified SHA1."""
@@ -1896,7 +1900,7 @@ class Pack(object):
         try:
             if msg:
                 keepfile.write(msg)
-                keepfile.write('\n')
+                keepfile.write(b'\n')
         finally:
             keepfile.close()
         return keepfile_name

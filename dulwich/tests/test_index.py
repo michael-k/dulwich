@@ -61,13 +61,13 @@ class SimpleIndexTestCase(IndexTestCase):
         self.assertEqual(1, len(self.get_simple_index("index")))
 
     def test_iter(self):
-        self.assertEqual(['bla'], list(self.get_simple_index("index")))
+        self.assertEqual([b'bla'], list(self.get_simple_index("index")))
 
     def test_getitem(self):
         self.assertEqual(((1230680220, 0), (1230680220, 0), 2050, 3761020,
                            33188, 1000, 1000, 0,
-                           'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391', 0),
-                          self.get_simple_index("index")["bla"])
+                           b'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391', 0),
+                          self.get_simple_index("index")[b"bla"])
 
     def test_empty(self):
         i = self.get_simple_index("notanindex")
@@ -79,8 +79,8 @@ class SimpleIndexTestCase(IndexTestCase):
         changes = list(i.changes_from_tree(MemoryObjectStore(), None))
         self.assertEqual(1, len(changes))
         (oldname, newname), (oldmode, newmode), (oldsha, newsha) = changes[0]
-        self.assertEqual('bla', newname)
-        self.assertEqual('e69de29bb2d1d6434b8b29ae775ad8c2e48c5391', newsha)
+        self.assertEqual(b'bla', newname)
+        self.assertEqual(b'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391', newsha)
 
 class SimpleIndexWriterTestCase(IndexTestCase):
 
@@ -93,16 +93,16 @@ class SimpleIndexWriterTestCase(IndexTestCase):
         shutil.rmtree(self.tempdir)
 
     def test_simple_write(self):
-        entries = [('barbla', (1230680220, 0), (1230680220, 0), 2050, 3761020,
+        entries = [(b'barbla', (1230680220, 0), (1230680220, 0), 2050, 3761020,
                     33188, 1000, 1000, 0,
-                    'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391', 0)]
+                    b'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391', 0)]
         filename = os.path.join(self.tempdir, 'test-simple-write-index')
-        x = open(filename, 'w+')
+        x = open(filename, 'wb+')
         try:
             write_index(x, entries)
         finally:
             x.close()
-        x = open(filename, 'r')
+        x = open(filename, 'rb')
         try:
             self.assertEqual(entries, list(read_index(x)))
         finally:
@@ -117,25 +117,25 @@ class CommitTreeTests(TestCase):
 
     def test_single_blob(self):
         blob = Blob()
-        blob.data = "foo"
+        blob.data = b"foo"
         self.store.add_object(blob)
-        blobs = [("bla", blob.id, stat.S_IFREG)]
+        blobs = [(b"bla", blob.id, stat.S_IFREG)]
         rootid = commit_tree(self.store, blobs)
-        self.assertEqual(rootid, "1a1e80437220f9312e855c37ac4398b68e5c1d50")
-        self.assertEqual((stat.S_IFREG, blob.id), self.store[rootid]["bla"])
+        self.assertEqual(rootid, b"1a1e80437220f9312e855c37ac4398b68e5c1d50")
+        self.assertEqual((stat.S_IFREG, blob.id), self.store[rootid][b"bla"])
         self.assertEqual(set([rootid, blob.id]), set(self.store._data.keys()))
 
     def test_nested(self):
         blob = Blob()
-        blob.data = "foo"
+        blob.data = b"foo"
         self.store.add_object(blob)
-        blobs = [("bla/bar", blob.id, stat.S_IFREG)]
+        blobs = [(b"bla/bar", blob.id, stat.S_IFREG)]
         rootid = commit_tree(self.store, blobs)
-        self.assertEqual(rootid, "d92b959b216ad0d044671981196781b3258fa537")
-        dirid = self.store[rootid]["bla"][1]
-        self.assertEqual(dirid, "c1a1deb9788150829579a8b4efa6311e7b638650")
-        self.assertEqual((stat.S_IFDIR, dirid), self.store[rootid]["bla"])
-        self.assertEqual((stat.S_IFREG, blob.id), self.store[dirid]["bar"])
+        self.assertEqual(rootid, b"d92b959b216ad0d044671981196781b3258fa537")
+        dirid = self.store[rootid][b"bla"][1]
+        self.assertEqual(dirid, b"c1a1deb9788150829579a8b4efa6311e7b638650")
+        self.assertEqual((stat.S_IFDIR, dirid), self.store[rootid][b"bla"])
+        self.assertEqual((stat.S_IFREG, blob.id), self.store[dirid][b"bar"])
         self.assertEqual(set([rootid, dirid, blob.id]),
                           set(self.store._data.keys()))
 
@@ -262,16 +262,16 @@ class BuildIndexTests(TestCase):
         self.addCleanup(shutil.rmtree, repo_dir)
 
         # Populate repo
-        filea = Blob.from_string('file a')
-        fileb = Blob.from_string('file b')
-        filed = Blob.from_string('file d')
-        filee = Blob.from_string('d')
+        filea = Blob.from_string(b'file a')
+        fileb = Blob.from_string(b'file b')
+        filed = Blob.from_string(b'file d')
+        filee = Blob.from_string(b'd')
 
         tree = Tree()
-        tree['a'] = (stat.S_IFREG | 0o644, filea.id)
-        tree['b'] = (stat.S_IFREG | 0o644, fileb.id)
-        tree['c/d'] = (stat.S_IFREG | 0o644, filed.id)
-        tree['c/e'] = (stat.S_IFLNK, filee.id)  # symlink
+        tree[b'a'] = (stat.S_IFREG | 0o644, filea.id)
+        tree[b'b'] = (stat.S_IFREG | 0o644, fileb.id)
+        tree[b'c/d'] = (stat.S_IFREG | 0o644, filed.id)
+        tree[b'c/e'] = (stat.S_IFLNK, filee.id)  # symlink
 
         repo.object_store.add_objects([(o, None)
             for o in [filea, fileb, filed, filee, tree]])
@@ -286,28 +286,28 @@ class BuildIndexTests(TestCase):
         # filea
         apath = os.path.join(repo.path, 'a')
         self.assertTrue(os.path.exists(apath))
-        self.assertReasonableIndexEntry(index['a'],
+        self.assertReasonableIndexEntry(index[b'a'],
             stat.S_IFREG | 0o644, 6, filea.id)
-        self.assertFileContents(apath, 'file a')
+        self.assertFileContents(apath, b'file a')
 
         # fileb
         bpath = os.path.join(repo.path, 'b')
         self.assertTrue(os.path.exists(bpath))
-        self.assertReasonableIndexEntry(index['b'],
+        self.assertReasonableIndexEntry(index[b'b'],
             stat.S_IFREG | 0o644, 6, fileb.id)
-        self.assertFileContents(bpath, 'file b')
+        self.assertFileContents(bpath, b'file b')
 
         # filed
         dpath = os.path.join(repo.path, 'c', 'd')
         self.assertTrue(os.path.exists(dpath))
-        self.assertReasonableIndexEntry(index['c/d'], 
+        self.assertReasonableIndexEntry(index[b'c/d'], 
             stat.S_IFREG | 0o644, 6, filed.id)
-        self.assertFileContents(dpath, 'file d')
+        self.assertFileContents(dpath, b'file d')
 
         # symlink to d
         epath = os.path.join(repo.path, 'c', 'e')
         self.assertTrue(os.path.exists(epath))
-        self.assertReasonableIndexEntry(index['c/e'], 
+        self.assertReasonableIndexEntry(index[b'c/e'], 
             stat.S_IFLNK, 1, filee.id)
         self.assertFileContents(epath, 'd', symlink=True)
 

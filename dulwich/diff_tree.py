@@ -134,7 +134,7 @@ def walk_trees(store, tree1_id, tree2_id, prune_identical=False):
     # This could be fairly easily generalized to >2 trees if we find a use case.
     mode1 = tree1_id and stat.S_IFDIR or None
     mode2 = tree2_id and stat.S_IFDIR or None
-    todo = [(TreeEntry('', mode1, tree1_id), TreeEntry('', mode2, tree2_id))]
+    todo = [(TreeEntry(b'', mode1, tree1_id), TreeEntry(b'', mode2, tree2_id))]
     while todo:
         entry1, entry2 = todo.pop()
         is_tree1 = _is_tree(entry1)
@@ -293,7 +293,7 @@ def _count_blocks(obj):
     for c in itertools.chain(*obj.as_raw_chunks()):
         block_write(c)
         n += 1
-        if c == '\n' or n == _BLOCK_SIZE:
+        if c == b'\n' or n == _BLOCK_SIZE:
             value = block_getvalue()
             block_counts[hash(value)] += len(value)
             block_seek(0)

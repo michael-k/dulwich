@@ -63,9 +63,9 @@ class Config(object):
             value = self.get(section, name)
         except KeyError:
             return default
-        if value.lower() == "true":
+        if value.lower() == b"true":
             return True
-        elif value.lower() == "false":
+        elif value.lower() == b"false":
             return False
         raise ValueError("not a valid boolean string: %r" % value)
 
@@ -158,11 +158,11 @@ class ConfigDict(Config, MutableMapping):
 
 
 def _format_string(value):
-    if (value.startswith(" ") or
-        value.startswith("\t") or
-        value.endswith(" ") or
-        value.endswith("\t")):
-        return '"%s"' % _escape_value(value)
+    if (value.startswith(b" ") or
+        value.startswith(b"\t") or
+        value.endswith(b" ") or
+        value.endswith(b"\t")):
+        return b'"' + _escape_value(value) + b'"'
     return _escape_value(value)
 
 
@@ -170,13 +170,13 @@ def _parse_string(value):
     value = value.strip()
     ret = []
     block = []
-    in_quotes  = False
+    in_quotes = False
     for c in value:
-        if c == "\"":
+        if c == b"\"":
             in_quotes = (not in_quotes)
-            ret.append(_unescape_value("".join(block)))
+            ret.append(_unescape_value(b"".join(block)))
             block = []
-        elif c in ("#", ";") and not in_quotes:
+        elif c in (b"#", b";") and not in_quotes:
             # the rest of the line is a comment
             break
         else:
@@ -185,46 +185,49 @@ def _parse_string(value):
     if in_quotes:
         raise ValueError("value starts with quote but lacks end quote")
 
-    ret.append(_unescape_value("".join(block)).rstrip())
+    ret.append(_unescape_value(b"".join(block)).rstrip())
 
-    return "".join(ret)
+    return b"".join(ret)
 
 
 def _unescape_value(value):
     """Unescape a value."""
     def unescape(c):
         return {
-            "\\\\": "\\",
-            "\\\"": "\"",
-            "\\n": "\n",
-            "\\t": "\t",
-            "\\b": "\b",
-            }[c.group(0)]
-    return re.sub(r"(\\.)", unescape, value)
+            b"\\\\": b"\\",
+            b"\\\"": b"\"",
+            b"\\n": b"\n",
+            b"\\t": b"\t",
+            b"\\b": b"\b",
+        }[c.group(0)]
+    return re.sub(br"(\\.)", unescape, value)
 
 
 def _escape_value(value):
     """Escape a value."""
-    return value.replace("\\", "\\\\").replace("\n", "\\n").replace("\t", "\\t").replace("\"", "\\\"")
+    return (value.replace(b"\\", b"\\\\")
+                 .replace(b"\n", b"\\n")
+                 .replace(b"\t", b"\\t")
+                 .replace(b"\"", b"\\\""))
 
 
 def _check_variable_name(name):
     for c in name:
-        if not c.isalnum() and c != '-':
+        if not c.isalnum() and c != b'-':
             return False
     return True
 
 
 def _check_section_name(name):
     for c in name:
-        if not c.isalnum() and c not in ('-', '.'):
+        if not c.isalnum() and c not in (b'-', b'.'):
             return False
     return True
 
 
 def _strip_comments(line):
-    line = line.split("#")[0]
-    line = line.split(";")[0]
+    line = line.split(b"#")[0]
+    line = line.split(b";")[0]
     return line
 
 
@@ -241,18 +244,18 @@ class ConfigFile(ConfigDict):
         for lineno, line in enumerate(f.readlines()):
             line = line.lstrip()
             if setting is None:
-                if len(line) > 0 and line[0] == "[":
+                if len(line) > 0 and line[0] == b"["[0]:
                     line = _strip_comments(line).rstrip()
-                    last = line.index("]")
+                    last = line.index(b"]")
                     if last == -1:
                         raise ValueError("expected trailing ]")
-                    pts = line[1:last].split(" ", 1)
+                    pts = line[1:last].split(b" ", 1)
                     line = line[last+1:]
                     pts[0] = pts[0].lower()
                     if len(pts) == 2:
-                        if pts[1][0] != "\"" or pts[1][-1] != "\"":
+                        if pts[1][0] != b"\""[0] or pts[1][-1] != b"\""[0]:
                             raise ValueError(
-                                "Invalid subsection " + pts[1])
+                                "Invalid subsection %r" % pts[1])
                         else:
                             pts[1] = pts[1][1:-1]
                         if not _check_section_name(pts[0]):
@@ -263,25 +266,25 @@ class ConfigFile(ConfigDict):
                         if not _check_section_name(pts[0]):
                             raise ValueError("invalid section name %s" %
                                     pts[0])
-                        pts = pts[0].split(".", 1)
+                        pts = pts[0].split(b".", 1)
                         if len(pts) == 2:
                             section = (pts[0], pts[1])
                         else:
                             section = (pts[0], )
                     ret._values[section] = OrderedDict()
-                if _strip_comments(line).strip() == "":
+                if _strip_comments(line).strip() == b"":
                     continue
                 if section is None:
                     raise ValueError("setting %r without section" % line)
                 try:
-                    setting, value = line.split("=", 1)
+                    setting, value = line.split(b"=", 1)
                 except ValueError:
                     setting = line
-                    value = "true"
+                    value = b"true"
                 setting = setting.strip().lower()
                 if not _check_variable_name(setting):
                     raise ValueError("invalid variable name %s" % setting)
-                if value.endswith("\\\n"):
+                if value.endswith(b"\\\n"):
                     value = value[:-2]
                     continuation = True
                 else:
@@ -290,8 +293,8 @@ class ConfigFile(ConfigDict):
                 ret._values[section][setting] = value
                 if not continuation:
                     setting = None
-            else: # continuation line
-                if line.endswith("\\\n"):
+            else:  # continuation line
+                if line.endswith(b"\\\n"):
                     line = line[:-2]
                     continuation = True
                 else:
@@ -332,11 +335,11 @@ class ConfigFile(ConfigDict):
                 (section_name, ) = section
                 subsection_name = None
             if subsection_name is None:
-                f.write("[%s]\n" % section_name)
+                f.write(b'[' + section_name + b']\n')
             else:
-                f.write("[%s \"%s\"]\n" % (section_name, subsection_name))
+                f.write(b'[' + section_name + b' "' + subsection_name + b'"]\n')
             for key, value in values.iteritems():
-                f.write("\t%s = %s\n" % (key, _escape_value(value)))
+                f.write(b'\t' + key + b' = ' + _escape_value(value) + b'\n')
 
 
 class StackedConfig(Config):

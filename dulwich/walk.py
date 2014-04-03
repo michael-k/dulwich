@@ -74,13 +74,13 @@ class WalkEntry(object):
                 changes_func = tree_changes_for_merge
                 parent = [self._store[p].tree for p in self._get_parents(commit)]
             self._changes = list(changes_func(
-              self._store, parent, commit.tree,
-              rename_detector=self._rename_detector))
+                self._store, parent, commit.tree,
+                rename_detector=self._rename_detector))
         return self._changes
 
     def __repr__(self):
         return '<WalkEntry commit=%s, changes=%r>' % (
-          self.commit.id, self.changes())
+            self.commit.id, self.changes())
 
 
 class _CommitTimeQueue(object):
@@ -160,7 +160,7 @@ class _CommitTimeQueue(object):
                         reset_extra_commits = False
 
             if (self._min_time is not None and
-                commit.commit_time < self._min_time):
+                    commit.commit_time < self._min_time):
                 # We want to stop walking at min_time, but commits at the
                 # boundary may be out of order with respect to their parents. So
                 # we walk _MAX_EXTRA_COMMITS more commits once we hit this
@@ -251,7 +251,7 @@ class Walker(object):
             if changed_path == followed_path:
                 return True
             if (changed_path.startswith(followed_path) and
-                changed_path[len(followed_path)] == '/'):
+                    changed_path[len(followed_path)] == b'/'[0]):
                 return True
         return False
 

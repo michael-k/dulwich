@@ -61,8 +61,8 @@ def pkt_line(data):
         None, returns the flush-pkt ('0000').
     """
     if data is None:
-        return '0000'
-    return '%04x%s' % (len(data) + 4, data)
+        return b'0000'
+    return ('%04x' % (len(data) + 4)).encode('ascii') + data
 
 
 class Protocol(object):
@@ -205,7 +205,7 @@ class Protocol(object):
         :param cmd: The remote service to access.
         :param args: List of arguments to send to remove service.
         """
-        self.write_pkt_line("%s %s" % (cmd, "".join(["%s\0" % a for a in args])))
+        self.write_pkt_line(cmd + b' ' + b''.join([a + b'\0' for a in args]))
 
     def read_cmd(self):
         """Read a command and some arguments from the git client
@@ -215,10 +215,10 @@ class Protocol(object):
         :return: A tuple of (command, [list of arguments]).
         """
         line = self.read_pkt_line()
-        splice_at = line.find(" ")
+        splice_at = line.find(b' ')
         cmd, args = line[:splice_at], line[splice_at+1:]
-        assert args[-1] == "\x00"
-        return cmd, args[:-1].split(chr(0))
+        assert args[-1:] == b'\x00'
+        return cmd, args[:-1].split(b'\x00')
 
 
 _RBUFSIZE = 8192  # Default read buffer size.
@@ -350,10 +350,10 @@ def extract_want_line_capabilities(text):
     :param text: Want line to extract from
     :return: Tuple with text with capabilities removed and list of capabilities
     """
-    split_text = text.rstrip().split(" ")
+    split_text = text.rstrip().split(b" ")
     if len(split_text) < 3:
         return text, []
-    return (" ".join(split_text[:2]), split_text[2:])
+    return (b" ".join(split_text[:2]), split_text[2:])
 
 
 def ack_type(capabilities):

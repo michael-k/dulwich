@@ -77,6 +77,6 @@ class GitServerSideBand64kTestCase(GitServerTestCase):
         return None  # default handlers include side-band-64k
 
     def _check_server(self, server):
-        receive_pack_handler_cls = server.handlers['git-receive-pack']
+        receive_pack_handler_cls = server.handlers[b'git-receive-pack']
         caps = receive_pack_handler_cls.capabilities()
-        self.assertTrue('side-band-64k' in caps)
+        self.assertTrue(b'side-band-64k' in caps)
