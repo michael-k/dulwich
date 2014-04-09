@@ -1059,6 +1059,8 @@ class MissingObjectFinder(object):
         self.progress("counting objects: %d\r" % len(self.sha_done))
         return (sha, name)
 
+    __next__ = next
+
 
 class ObjectStoreGraphWalker(object):
     """Graph walker that finds what commits are missing from an object store.
@@ -1110,3 +1112,5 @@ class ObjectStoreGraphWalker(object):
             self.heads.update([p for p in ps if not p in self.parents])
             return ret
         return None
+
+    __next__ = next
