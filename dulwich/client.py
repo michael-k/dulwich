@@ -350,7 +350,7 @@ class GitClient(object):
         :param can_read: function that returns a boolean that indicates
             whether there is extra graph data to read on proto
         """
-        assert isinstance(wants, list) and isinstance(wants[0], str)
+        assert isinstance(wants, list) and isinstance(wants[0], bytes)
         proto.write_pkt_line('want %s %s\n' % (
             wants[0], ' '.join(capabilities)))
         for want in wants[1:]:

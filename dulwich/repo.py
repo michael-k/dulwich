@@ -425,7 +425,7 @@ class BaseRepo(object):
         from dulwich.walk import Walker
         if include is None:
             include = [self.head()]
-        if isinstance(include, str):
+        if isinstance(include, bytes):
             include = [include]
 
         kwargs['get_parents'] = lambda commit: self.get_parents(commit.id, commit)
@@ -439,7 +439,7 @@ class BaseRepo(object):
         :return: A `ShaFile` object, such as a Commit or Blob
         :raise KeyError: when the specified ref or object does not exist
         """
-        if not isinstance(name, str):
+        if not isinstance(name, bytes):
             raise TypeError("'name' must be bytestring, not %.80s" %
                     type(name).__name__)
         if len(name) in (20, 40):
@@ -471,10 +471,10 @@ class BaseRepo(object):
         if name.startswith("refs/") or name == "HEAD":
             if isinstance(value, ShaFile):
                 self.refs[name] = value.id
-            elif isinstance(value, str):
+            elif isinstance(value, bytes):
                 self.refs[name] = value
             else:
-                raise TypeError(value)
+                raise TypeError('Expected bytes or ShaFile for value, got %r' % value)
         else:
             raise ValueError(name)
 

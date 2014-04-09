@@ -255,13 +255,13 @@ class Index(object):
         self._byname = {}
 
     def __setitem__(self, name, x):
-        assert isinstance(name, str)
+        assert isinstance(name, bytes)
         assert len(x) == 10
         # Remove the old entry if any
         self._byname[name] = x
 
     def __delitem__(self, name):
-        assert isinstance(name, str)
+        assert isinstance(name, bytes)
         del self._byname[name]
 
     def iteritems(self):
@@ -311,7 +311,7 @@ def commit_tree(object_store, blobs):
             return trees[path]
         dirname, basename = pathsplit(path)
         t = add_tree(dirname)
-        assert isinstance(basename, str)
+        assert isinstance(basename, bytes)
         newtree = {}
         t[basename] = newtree
         trees[path] = newtree

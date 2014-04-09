@@ -87,7 +87,7 @@ def hex_to_sha(hex):
     try:
         return binascii.unhexlify(hex)
     except TypeError as exc:
-        if not isinstance(hex, str):
+        if not isinstance(hex, bytes):
             raise
         raise ValueError(exc.args[0])
 
@@ -289,8 +289,8 @@ class ShaFile(object):
 
     def set_raw_string(self, text, sha=None):
         """Set the contents of this object from a serialized string."""
-        if not isinstance(text, str):
-            raise TypeError(text)
+        if not isinstance(text, bytes):
+            raise TypeError('Expected bytes for text, got %r' % text)
         self.set_raw_chunks([text], sha)
 
     def set_raw_chunks(self, chunks, sha=None):
@@ -738,8 +738,8 @@ class TreeEntry(namedtuple('TreeEntry', ['path', 'mode', 'sha'])):
 
     def in_path(self, path):
         """Return a copy of this entry with the given path prepended."""
-        if not isinstance(self.path, str):
-            raise TypeError
+        if not isinstance(self.path, bytes):
+            raise TypeError('Expected bytes for path, got %r' % path)
         return TreeEntry(posixpath.join(path, self.path), self.mode, self.sha)
 
 
@@ -797,8 +797,8 @@ def sorted_tree_items(entries, name_order):
         if not isinstance(mode, int) and not isinstance(mode, long):
             raise TypeError('Expected integer/long for mode, got %r' % mode)
         mode = int(mode)
-        if not isinstance(hexsha, str):
-            raise TypeError('Expected a string for SHA, got %r' % hexsha)
+        if not isinstance(hexsha, bytes):
+            raise TypeError('Expected a bytes for SHA, got %r' % hexsha)
         yield TreeEntry(name, mode, hexsha)
 
 
@@ -879,7 +879,7 @@ class Tree(ShaFile):
         :param name: The name of the entry, as a string.
         :param hexsha: The hex SHA of the entry as a string.
         """
-        if isinstance(name, int) and isinstance(mode, str):
+        if isinstance(name, int) and isinstance(mode, bytes):
             (name, mode) = (mode, name)
             warnings.warn("Please use Tree.add(name, mode, hexsha)",
                 category=DeprecationWarning, stacklevel=2)

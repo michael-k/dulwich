@@ -1052,7 +1052,7 @@ class PackData(object):
             assert isinstance(type, int)
         elif type == REF_DELTA:
             (basename, delta) = obj
-            assert isinstance(basename, str) and len(basename) == 20
+            assert isinstance(basename, bytes) and len(basename) == 20
             base_offset, type, base_obj = get_ref(basename)
             assert isinstance(type, int)
         type, base_chunks = self.resolve_object(base_offset, type, base_obj)
@@ -1589,8 +1589,8 @@ def create_delta(base_buf, target_buf):
     :param base_buf: Base buffer
     :param target_buf: Target buffer
     """
-    assert isinstance(base_buf, str)
-    assert isinstance(target_buf, str)
+    assert isinstance(base_buf, bytes)
+    assert isinstance(target_buf, bytes)
     out_buf = ''
     # write delta header
     def encode_size(size):
@@ -1649,9 +1649,9 @@ def apply_delta(src_buf, delta):
     :param src_buf: Source buffer
     :param delta: Delta instructions
     """
-    if not isinstance(src_buf, str):
+    if not isinstance(src_buf, bytes):
         src_buf = ''.join(src_buf)
-    if not isinstance(delta, str):
+    if not isinstance(delta, bytes):
         delta = ''.join(delta)
     out = []
     index = 0
