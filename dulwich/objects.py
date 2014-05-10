@@ -805,7 +805,7 @@ def sorted_tree_items(entries, name_order):
             raise TypeError('Expected integer/long for mode, got %r' % mode)
         mode = int(mode)
         if not isinstance(hexsha, bytes):
-            raise TypeError('Expected a bytes for SHA, got %r' % hexsha)
+            raise TypeError('Expected bytes for SHA, got %r' % hexsha)
         yield TreeEntry(name, mode, hexsha)
 
 
