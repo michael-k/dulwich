@@ -17,12 +17,14 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA  02110-1301, USA.
 
+from __future__ import print_function
 from dulwich.server import serve_command, ReceivePackHandler
 import os
 import sys
 
 if len(sys.argv) < 2:
-    print >>sys.stderr, "usage: %s <git-dir>" % os.path.basename(sys.argv[0])
+    print('usage: %s <git-dir>' % os.path.basename(sys.argv[0]),
+          file=sys.stderr)
     sys.exit(1)
 
 sys.exit(serve_command(ReceivePackHandler))
