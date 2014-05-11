@@ -121,7 +121,10 @@ def write_cache_entry(f, entry):
 
 
 def read_index(f):
-    """Read an index file, yielding the individual entries."""
+    """Read an index file, yielding the individual entries.
+
+    :param f: File object to read from.
+    """
     header = f.read(4)
     if header != "DIRC":
         raise AssertionError("Invalid index file header: %r" % header)
@@ -157,6 +160,8 @@ def write_index(f, entries):
 def write_index_dict(f, entries):
     """Write an index file based on the contents of a dictionary.
 
+    :param f: File-like object to write to.
+    :param entries: Dictionary of entries to write.
     """
     entries_list = []
     for name in sorted(entries):
