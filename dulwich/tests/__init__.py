@@ -87,14 +87,19 @@ class BlackboxTestCase(TestCase):
         """
         return os.path.join(self.bin_directory, name)
 
-    def run_command(self, name, args):
+    def run_command(self, name, args, pwd=None):
         """Run a Dulwich command.
 
         :param name: Name of the command, as it exists in bin/
         :param args: Arguments to the command
+        :param pwd: Directory to work in
         """
         env = dict(os.environ)
         env["PYTHONPATH"] = os.pathsep.join(sys.path)
+
+        if pwd:
+            env['OLDPWD'] = env['PWD']
+            env['PWD'] = pwd
 
         # Since they don't have any extensions, Windows can't recognize
         # executablility of the Python files in /bin. Even then, we'd have to
