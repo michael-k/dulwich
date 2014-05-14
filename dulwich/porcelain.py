@@ -27,11 +27,13 @@ Currently implemented:
  * diff-tree
  * init
  * list-tags
+ * log
  * pull
  * push
  * rm
  * reset
  * rev-list
+ * show
  * tag
  * update-server-info
  * symbolic-ref
